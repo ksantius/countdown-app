@@ -385,5 +385,54 @@
       }, timeUntilMidnight);
     });
   </script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+
+<script>
+  // Your Firebase configuration (you'll get this from Firebase console)
+  const firebaseConfig = {
+    apiKey: "AIzaSyAtms9d503N5Yk5_kZCGO8japBPlZS-2BI",
+    authDomain: "countdown-app-2390e.firebaseapp.com",
+    projectId: "countdown-app-2390e",
+    storageBucket: "countdown-app-2390e.firebasestorage.app",
+    messagingSenderId: "347958662917",
+    appId: "1:347958662917:web:747ea383c8d272e1eb496c"
+  };
+
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  
+  // Replace localStorage functions with Firebase functions
+  function saveEvents() {
+    // First clear the collection
+    db.collection("events").get().then((querySnapshot) => {
+      querySnapshot.forEach((doc) => {
+        doc.ref.delete();
+      });
+      
+      // Then add all current events
+      events.forEach(event => {
+        db.collection("events").add(event);
+      });
+    });
+  }
+  
+  // Load events from Firebase instead of localStorage
+  function loadEvents() {
+    events = [];
+    db.collection("events").get().then((querySnapshot) => {
+      querySnapshot.forEach((doc) => {
+        events.push(doc.data());
+      });
+      renderEvents();
+    });
+  }
+  
+  // Call loadEvents() instead of getting from localStorage
+  loadEvents();
+  
+  // Rest of your code remains the same
+  </script>
 </body>
 </html>
