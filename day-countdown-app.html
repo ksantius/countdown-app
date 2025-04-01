@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Days Remaining Countdown</title>
+  <style>
+    :root {
+      --primary: #3b82f6;
+      --primary-light: #93c5fd;
+      --primary-dark: #1d4ed8;
+      --text: #1e293b;
+      --background: #f8fafc;
+      --card: #ffffff;
+      --border: #e2e8f0;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    
+    body {
+      background-color: var(--background);
+      color: var(--text);
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    header {
+      margin-bottom: 30px;
+      text-align: center;
+    }
+    
+    h1 {
+      color: var(--primary-dark);
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+    
+    .add-form {
+      background-color: var(--card);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      border: 1px solid var(--border);
+    }
+    
+    .form-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    
+    .input-group {
+      flex: 1;
+      min-width: 200px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 14px;
+      color: var(--text);
+    }
+    
+    input, select {
+      width: 100%;
+      padding: 10px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      font-size: 14px;
+    }
+    
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px var(--primary-light);
+    }
+    
+    button {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: background-color 0.2s;
+    }
+    
+    button:hover {
+      background-color: var(--primary-dark);
+    }
+    
+    .countdown-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 20px;
+    }
+    
+    .countdown-card {
+      background-color: var(--card);
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    
+    .countdown-emoji {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+    
+    .countdown-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+    
+    .countdown-date {
+      font-size: 14px;
+      color: #64748b;
+      margin-bottom: 15px;
+    }
+    
+    .countdown-days {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-top: auto;
+    }
+    
+    .delete-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background-color: transparent;
+      color: #94a3b8;
+      padding: 5px;
+      font-size: 16px;
+    }
+    
+    .delete-btn:hover {
+      color: #ef4444;
+      background-color: transparent;
+    }
+    
+    .no-events {
+      text-align: center;
+      grid-column: 1 / -1;
+      padding: 30px;
+      color: #64748b;
+    }
+    
+    .emoji-picker {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 5px;
+      margin-top: 5px;
+    }
+    
+    .emoji-option {
+      cursor: pointer;
+      font-size: 20px;
+      padding: 5px;
+      border-radius: 4px;
+      text-align: center;
+    }
+    
+    .emoji-option:hover {
+      background-color: var(--primary-light);
+    }
+    
+    @media (max-width: 600px) {
+      .countdown-list {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Days Remaining</h1>
+    <p>Track the days until your important dates</p>
+  </header>
+
+  <div class="add-form">
+    <div class="form-group">
+      <div class="input-group">
+        <label for="event-name">Event Name</label>
+        <input type="text" id="event-name" placeholder="Birthday, Anniversary, etc." required>
+      </div>
+      <div class="input-group">
+        <label for="event-date">Event Date</label>
+        <input type="date" id="event-date" required>
+      </div>
+    </div>
+    
+    <div class="form-group">
+      <div class="input-group">
+        <label for="event-emoji">Choose Emoji</label>
+        <input type="text" id="selected-emoji" placeholder="Click to choose emoji" readonly>
+        <div class="emoji-picker" id="emoji-picker">
+          <div class="emoji-option">🎂</div>
+          <div class="emoji-option">🎉</div>
+          <div class="emoji-option">🎁</div>
+          <div class="emoji-option">🏖️</div>
+          <div class="emoji-option">🎓</div>
+          <div class="emoji-option">💍</div>
+          <div class="emoji-option">🏠</div>
+          <div class="emoji-option">💼</div>
+          <div class="emoji-option">✈️</div>
+          <div class="emoji-option">🏆</div>
+          <div class="emoji-option">⏰</div>
+          <div class="emoji-option">💰</div>
+          <div class="emoji-option">🎯</div>
+          <div class="emoji-option">📚</div>
+          <div class="emoji-option">💪</div>
+          <div class="emoji-option">❤️</div>
+        </div>
+      </div>
+    </div>
+    
+    <button id="add-event">Add Countdown</button>
+  </div>
+
+  <div class="countdown-list" id="countdown-list">
+    <div class="no-events" id="no-events">
+      No countdowns added yet. Add your first countdown above!
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const eventNameInput = document.getElementById('event-name');
+      const eventDateInput = document.getElementById('event-date');
+      const selectedEmojiInput = document.getElementById('selected-emoji');
+      const addEventButton = document.getElementById('add-event');
+      const countdownList = document.getElementById('countdown-list');
+      const noEventsMessage = document.getElementById('no-events');
+      const emojiPicker = document.getElementById('emoji-picker');
+      
+      // Set minimum date to today
+      const today = new Date();
+      const formattedDate = today.toISOString().split('T')[0];
+      eventDateInput.setAttribute('min', formattedDate);
+      
+      // Load events from localStorage
+      let events = JSON.parse(localStorage.getItem('countdown-events')) || [];
+      
+      // Emoji picker functionality
+      const emojiOptions = document.querySelectorAll('.emoji-option');
+      emojiOptions.forEach(option => {
+        option.addEventListener('click', () => {
+          selectedEmojiInput.value = option.textContent;
+        });
+      });
+      
+      // Add event listener for the add button
+      addEventButton.addEventListener('click', addEvent);
+      
+      // Initial render
+      renderEvents();
+      
+      function addEvent() {
+        const name = eventNameInput.value.trim();
+        const date = eventDateInput.value;
+        const emoji = selectedEmojiInput.value || '📅';
+        
+        if (!name || !date) {
+          alert('Please fill in both name and date fields');
+          return;
+        }
+        
+        const newEvent = {
+          id: Date.now().toString(),
+          name,
+          date,
+          emoji
+        };
+        
+        events.push(newEvent);
+        saveEvents();
+        renderEvents();
+        
+        // Reset form
+        eventNameInput.value = '';
+        eventDateInput.value = '';
+        selectedEmojiInput.value = '';
+      }
+      
+      function deleteEvent(id) {
+        events = events.filter(event => event.id !== id);
+        saveEvents();
+        renderEvents();
+      }
+      
+      function saveEvents() {
+        localStorage.setItem('countdown-events', JSON.stringify(events));
+      }
+      
+      function renderEvents() {
+        // Sort events by date (closest first)
+        events.sort((a, b) => new Date(a.date) - new Date(b.date));
+        
+        // Show/hide no events message
+        if (events.length === 0) {
+          noEventsMessage.style.display = 'block';
+        } else {
+          noEventsMessage.style.display = 'none';
+        }
+        
+        // Clear existing events (except the no-events message)
+        const existingCards = document.querySelectorAll('.countdown-card');
+        existingCards.forEach(card => card.remove());
+        
+        // Add each event
+        events.forEach(event => {
+          const eventDate = new Date(event.date);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          
+          const timeDiff = eventDate - today;
+          const daysRemaining = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+          
+          const card = document.createElement('div');
+          card.className = 'countdown-card';
+          
+          card.innerHTML = `
+            <div class="countdown-emoji">${event.emoji}</div>
+            <h3 class="countdown-title">${event.name}</h3>
+            <div class="countdown-date">${formatDate(event.date)}</div>
+            <div class="countdown-days">${daysRemaining} ${daysRemaining === 1 ? 'day' : 'days'}</div>
+            <button class="delete-btn" data-id="${event.id}">×</button>
+          `;
+          
+          countdownList.appendChild(card);
+        });
+        
+        // Add event listeners to delete buttons
+        document.querySelectorAll('.delete-btn').forEach(button => {
+          button.addEventListener('click', (e) => {
+            const id = e.target.getAttribute('data-id');
+            deleteEvent(id);
+          });
+        });
+      }
+      
+      function formatDate(dateString) {
+        const options = { year: 'numeric', month: 'long', day: 'numeric' };
+        return new Date(dateString).toLocaleDateString(undefined, options);
+      }
+      
+      // Update countdown days every day
+      function updateCountdowns() {
+        if (events.length > 0) {
+          renderEvents();
+        }
+      }
+      
+      // Check for updates once a day
+      setInterval(updateCountdowns, 24 * 60 * 60 * 1000);
+      
+      // Also update at midnight
+      const now = new Date();
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(0, 0, 0, 0);
+      const timeUntilMidnight = tomorrow - now;
+      
+      setTimeout(() => {
+        updateCountdowns();
+        // Then set the regular interval
+        setInterval(updateCountdowns, 24 * 60 * 60 * 1000);
+      }, timeUntilMidnight);
+    });
+  </script>
+</body>
+</html>
