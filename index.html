@@ -431,7 +431,58 @@
   
   // Call loadEvents() instead of getting from localStorage
   loadEvents();
+
+  // debug
+  firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+console.log("Firebase initialized");
+
+function saveEvents() {
+  console.log("Attempting to save events:", events);
   
+  db.collection("events").get().then((querySnapshot) => {
+    console.log("Successfully queried existing events");
+    
+    querySnapshot.forEach((doc) => {
+      console.log("Deleting doc:", doc.id);
+      doc.ref.delete();
+    });
+    
+    events.forEach(event => {
+      console.log("Adding event:", event);
+      db.collection("events").add(event)
+        .then(docRef => {
+          console.log("Event added with ID:", docRef.id);
+        })
+        .catch(error => {
+          console.error("Error adding event:", error);
+        });
+    });
+  }).catch(error => {
+    console.error("Error querying events:", error);
+  });
+}
+
+function loadEvents() {
+  console.log("Attempting to load events");
+  events = [];
+  
+  db.collection("events").get()
+    .then((querySnapshot) => {
+      console.log("Retrieved events, count:", querySnapshot.size);
+      
+      querySnapshot.forEach((doc) => {
+        console.log("Event data:", doc.data());
+        events.push(doc.data());
+      });
+      
+      console.log("All events loaded:", events);
+      renderEvents();
+    })
+    .catch(error => {
+      console.error("Error loading events:", error);
+    });
+}
   // Rest of your code remains the same
   </script>
 </body>
