@@ -218,8 +218,8 @@
   </header>
 
   <div class="storage-toggle">
-    <button id="local-storage" class="active">Local Storage</button>
-    <button id="firebase-storage">Firebase Storage</button>
+    <button id="local-storage">Local Storage</button>
+    <button id="firebase-storage" class="active">Firebase Storage</button>
     <div class="status-indicator" id="status-indicator"></div>
   </div>
 
@@ -298,7 +298,7 @@
 
       // Initialize Firebase
       let db;
-      let useFirebase = false;
+      let useFirebase = true; // Set Firebase as default
       let events = [];
 
       try {
@@ -308,7 +308,9 @@
       } catch (error) {
         console.error("Firebase initialization error:", error);
         statusIndicator.innerText = "Firebase connection error: " + error.message;
-        useFirebase = false;
+        useFirebase = false; // Fallback to localStorage if Firebase fails
+        localStorageBtn.classList.add('active');
+        firebaseStorageBtn.classList.remove('active');
       }
       
       // Storage toggle buttons
@@ -344,7 +346,7 @@
       // Add event listener for the add button
       addEventButton.addEventListener('click', addEvent);
       
-      // Load events initially (from localStorage by default)
+      // Load events initially (from Firebase by default)
       loadEvents();
       
       function addEvent() {
@@ -418,10 +420,17 @@
           })
           .then(() => {
             statusIndicator.innerText = "Saved to Firebase successfully";
+            // Also save to localStorage as backup
+            localStorage.setItem('countdown-events', JSON.stringify(events));
           })
           .catch(error => {
             console.error("Error saving to Firebase:", error);
-            statusIndicator.innerText = "Error saving to Firebase: " + error.message;
+            statusIndicator.innerText = "Error saving to Firebase: " + error.message + ". Falling back to local storage.";
+            // Save to localStorage as fallback
+            localStorage.setItem('countdown-events', JSON.stringify(events));
+            useFirebase = false;
+            localStorageBtn.classList.add('active');
+            firebaseStorageBtn.classList.remove('active');
           });
       }
       
@@ -452,9 +461,12 @@
           })
           .catch(error => {
             console.error("Error loading from Firebase:", error);
-            statusIndicator.innerText = "Error loading from Firebase: " + error.message;
+            statusIndicator.innerText = "Error loading from Firebase: " + error.message + ". Falling back to local storage.";
             // Fallback to localStorage
             events = JSON.parse(localStorage.getItem('countdown-events')) || [];
+            useFirebase = false;
+            localStorageBtn.classList.add('active');
+            firebaseStorageBtn.classList.remove('active');
             renderEvents();
           });
       }
