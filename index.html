@@ -181,6 +181,29 @@
       background-color: var(--primary-light);
     }
     
+    .storage-toggle {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    
+    .storage-toggle button {
+      margin: 0 5px;
+      background-color: var(--border);
+      color: var(--text);
+    }
+    
+    .storage-toggle button.active {
+      background-color: var(--primary);
+      color: white;
+    }
+    
+    .status-indicator {
+      text-align: center;
+      margin-top: 10px;
+      font-size: 14px;
+      color: #64748b;
+    }
+    
     @media (max-width: 600px) {
       .countdown-list {
         grid-template-columns: 1fr;
@@ -193,6 +216,12 @@
     <h1>Days Remaining</h1>
     <p>Track the days until your important dates</p>
   </header>
+
+  <div class="storage-toggle">
+    <button id="local-storage" class="active">Local Storage</button>
+    <button id="firebase-storage">Firebase Storage</button>
+    <div class="status-indicator" id="status-indicator"></div>
+  </div>
 
   <div class="add-form">
     <div class="form-group">
@@ -240,6 +269,10 @@
     </div>
   </div>
 
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const eventNameInput = document.getElementById('event-name');
@@ -249,14 +282,56 @@
       const countdownList = document.getElementById('countdown-list');
       const noEventsMessage = document.getElementById('no-events');
       const emojiPicker = document.getElementById('emoji-picker');
+      const statusIndicator = document.getElementById('status-indicator');
+      const localStorageBtn = document.getElementById('local-storage');
+      const firebaseStorageBtn = document.getElementById('firebase-storage');
+      
+      // Firebase configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyAtms9d503N5Yk5_kZCGO8japBPlZS-2BI",
+        authDomain: "countdown-app-2390e.firebaseapp.com",
+        projectId: "countdown-app-2390e",
+        storageBucket: "countdown-app-2390e.firebaseestorage.app",
+        messagingSenderId: "347958662917",
+        appId: "1:347958662917:web:747ea383c8d272e1eb496c"
+      };
+
+      // Initialize Firebase
+      let db;
+      let useFirebase = false;
+      let events = [];
+
+      try {
+        firebase.initializeApp(firebaseConfig);
+        db = firebase.firestore();
+        statusIndicator.innerText = "Firebase connected successfully";
+      } catch (error) {
+        console.error("Firebase initialization error:", error);
+        statusIndicator.innerText = "Firebase connection error: " + error.message;
+        useFirebase = false;
+      }
+      
+      // Storage toggle buttons
+      localStorageBtn.addEventListener('click', () => {
+        useFirebase = false;
+        localStorageBtn.classList.add('active');
+        firebaseStorageBtn.classList.remove('active');
+        loadEvents();
+        statusIndicator.innerText = "Using local storage";
+      });
+      
+      firebaseStorageBtn.addEventListener('click', () => {
+        useFirebase = true;
+        firebaseStorageBtn.classList.add('active');
+        localStorageBtn.classList.remove('active');
+        loadEvents();
+        statusIndicator.innerText = "Using Firebase storage";
+      });
       
       // Set minimum date to today
       const today = new Date();
       const formattedDate = today.toISOString().split('T')[0];
       eventDateInput.setAttribute('min', formattedDate);
-      
-      // Load events from localStorage
-      let events = JSON.parse(localStorage.getItem('countdown-events')) || [];
       
       // Emoji picker functionality
       const emojiOptions = document.querySelectorAll('.emoji-option');
@@ -269,8 +344,8 @@
       // Add event listener for the add button
       addEventButton.addEventListener('click', addEvent);
       
-      // Initial render
-      renderEvents();
+      // Load events initially (from localStorage by default)
+      loadEvents();
       
       function addEvent() {
         const name = eventNameInput.value.trim();
@@ -305,8 +380,83 @@
         renderEvents();
       }
       
+      // Save events - either to localStorage or Firebase based on toggle
       function saveEvents() {
-        localStorage.setItem('countdown-events', JSON.stringify(events));
+        if (useFirebase) {
+          saveToFirebase();
+        } else {
+          // Save to localStorage
+          localStorage.setItem('countdown-events', JSON.stringify(events));
+        }
+      }
+      
+      // Save to Firebase
+      function saveToFirebase() {
+        statusIndicator.innerText = "Saving to Firebase...";
+        
+        // First, delete all existing documents
+        db.collection("events").get()
+          .then((querySnapshot) => {
+            const batch = db.batch();
+            
+            querySnapshot.forEach((doc) => {
+              batch.delete(doc.ref);
+            });
+            
+            return batch.commit();
+          })
+          .then(() => {
+            // Then add all current events as new documents
+            const batch = db.batch();
+            
+            events.forEach(event => {
+              const docRef = db.collection("events").doc(event.id);
+              batch.set(docRef, event);
+            });
+            
+            return batch.commit();
+          })
+          .then(() => {
+            statusIndicator.innerText = "Saved to Firebase successfully";
+          })
+          .catch(error => {
+            console.error("Error saving to Firebase:", error);
+            statusIndicator.innerText = "Error saving to Firebase: " + error.message;
+          });
+      }
+      
+      // Load events from either localStorage or Firebase
+      function loadEvents() {
+        if (useFirebase) {
+          loadFromFirebase();
+        } else {
+          // Load from localStorage
+          events = JSON.parse(localStorage.getItem('countdown-events')) || [];
+          renderEvents();
+        }
+      }
+      
+      // Load from Firebase
+      function loadFromFirebase() {
+        statusIndicator.innerText = "Loading from Firebase...";
+        
+        db.collection("events").get()
+          .then((querySnapshot) => {
+            events = [];
+            querySnapshot.forEach((doc) => {
+              events.push(doc.data());
+            });
+            
+            statusIndicator.innerText = `Loaded ${events.length} events from Firebase`;
+            renderEvents();
+          })
+          .catch(error => {
+            console.error("Error loading from Firebase:", error);
+            statusIndicator.innerText = "Error loading from Firebase: " + error.message;
+            // Fallback to localStorage
+            events = JSON.parse(localStorage.getItem('countdown-events')) || [];
+            renderEvents();
+          });
       }
       
       function renderEvents() {
@@ -384,106 +534,6 @@
         setInterval(updateCountdowns, 24 * 60 * 60 * 1000);
       }, timeUntilMidnight);
     });
-  </script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
-
-<script>
-  // Your Firebase configuration (you'll get this from Firebase console)
-  const firebaseConfig = {
-    apiKey: "AIzaSyAtms9d503N5Yk5_kZCGO8japBPlZS-2BI",
-    authDomain: "countdown-app-2390e.firebaseapp.com",
-    projectId: "countdown-app-2390e",
-    storageBucket: "countdown-app-2390e.firebasestorage.app",
-    messagingSenderId: "347958662917",
-    appId: "1:347958662917:web:747ea383c8d272e1eb496c"
-  };
-
-  // Initialize Firebase
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
-  
-  // Replace localStorage functions with Firebase functions
-  function saveEvents() {
-    // First clear the collection
-    db.collection("events").get().then((querySnapshot) => {
-      querySnapshot.forEach((doc) => {
-        doc.ref.delete();
-      });
-      
-      // Then add all current events
-      events.forEach(event => {
-        db.collection("events").add(event);
-      });
-    });
-  }
-  
-  // Load events from Firebase instead of localStorage
-  function loadEvents() {
-    events = [];
-    db.collection("events").get().then((querySnapshot) => {
-      querySnapshot.forEach((doc) => {
-        events.push(doc.data());
-      });
-      renderEvents();
-    });
-  }
-  
-  // Call loadEvents() instead of getting from localStorage
-  loadEvents();
-
-  // debug
-  firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-console.log("Firebase initialized");
-
-function saveEvents() {
-  console.log("Attempting to save events:", events);
-  
-  db.collection("events").get().then((querySnapshot) => {
-    console.log("Successfully queried existing events");
-    
-    querySnapshot.forEach((doc) => {
-      console.log("Deleting doc:", doc.id);
-      doc.ref.delete();
-    });
-    
-    events.forEach(event => {
-      console.log("Adding event:", event);
-      db.collection("events").add(event)
-        .then(docRef => {
-          console.log("Event added with ID:", docRef.id);
-        })
-        .catch(error => {
-          console.error("Error adding event:", error);
-        });
-    });
-  }).catch(error => {
-    console.error("Error querying events:", error);
-  });
-}
-
-function loadEvents() {
-  console.log("Attempting to load events");
-  events = [];
-  
-  db.collection("events").get()
-    .then((querySnapshot) => {
-      console.log("Retrieved events, count:", querySnapshot.size);
-      
-      querySnapshot.forEach((doc) => {
-        console.log("Event data:", doc.data());
-        events.push(doc.data());
-      });
-      
-      console.log("All events loaded:", events);
-      renderEvents();
-    })
-    .catch(error => {
-      console.error("Error loading events:", error);
-    });
-}
-  // Rest of your code remains the same
   </script>
 </body>
 </html>
